@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Faculty Academic Analytics Logo</title>
+  <desc id="desc">Shield badge with graduation cap and rising analytics bars.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="55%" stop-color="#0ea5a4"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="bars" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#dbeafe"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M128 14L224 54v74c0 62-43 96-96 114-53-18-96-52-96-114V54L128 14z" fill="url(#bg)"/>
+  <path d="M128 26L214 62v66c0 56-37 86-86 103-49-17-86-47-86-103V62L128 26z" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width="2"/>
+
+  <path d="M58 96L128 64l70 32-70 32-70-32z" fill="#ffffff"/>
+  <path d="M84 108v30c0 7 20 17 44 17s44-10 44-17v-30" fill="#dbeafe"/>
+  <path d="M198 96v32" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="198" cy="92" r="6" fill="#ffffff"/>
+
+  <rect x="92" y="154" width="14" height="26" rx="3" fill="url(#bars)"/>
+  <rect x="121" y="144" width="14" height="36" rx="3" fill="url(#bars)"/>
+  <rect x="150" y="134" width="14" height="46" rx="3" fill="url(#bars)"/>
+  <path d="M88 183h80" stroke="#ffffff" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/>
+</svg>
