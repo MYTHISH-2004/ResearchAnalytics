@@ -20,11 +20,28 @@ function apiRequest(path, options = {}, token) {
     return fetch(`${API_BASE}${path}`, { ...options, headers }).then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-            const message = data?.error || data?.message || "Request failed";
-            throw new Error(message);
+            throw new Error(data?.error || data?.message || "Request failed");
         }
         return data;
     });
+}
+
+function EmptyState({ message }) {
+    return <div className="empty-state">{message}</div>;
+}
+
+function Pagination({ pagination, onPage }) {
+    if (!pagination) return null;
+    return (
+        <div className="pagination-bar">
+            <span>{pagination.total} records</span>
+            <div className="btn-group">
+                <button className="btn btn-sm btn-outline-secondary" disabled={pagination.page <= 1} onClick={() => onPage(pagination.page - 1)}>Previous</button>
+                <button className="btn btn-sm btn-outline-secondary" disabled>{pagination.page} / {pagination.total_pages}</button>
+                <button className="btn btn-sm btn-outline-secondary" disabled={pagination.page >= pagination.total_pages} onClick={() => onPage(pagination.page + 1)}>Next</button>
+            </div>
+        </div>
+    );
 }
 
 function Toasts({ toasts, onRemove }) {
@@ -32,8 +49,11 @@ function Toasts({ toasts, onRemove }) {
         <div className="toast-stack">
             {toasts.map((toast) => (
                 <div key={toast.id} className={`toast-item toast-${toast.type}`}>
-                    <span>{toast.message}</span>
-                    <button onClick={() => onRemove(toast.id)} className="btn btn-sm btn-light">x</button>
+                    <div>
+                        <strong>{toast.title}</strong>
+                        <div>{toast.message}</div>
+                    </div>
+                    <button onClick={() => onRemove(toast.id)} className="toast-close">x</button>
                 </div>
             ))}
         </div>
@@ -44,9 +64,43 @@ function Loader({ show }) {
     if (!show) return null;
     return (
         <div className="page-loader">
-            <div className="spinner-border text-light" role="status"></div>
-            <p className="mt-2 mb-0 text-light fw-semibold">Loading...</p>
+            <div className="loader-panel">
+                <div className="spinner-border text-light" role="status"></div>
+                <p className="mt-3 mb-0 text-light fw-semibold">Loading workspace...</p>
+            </div>
         </div>
+    );
+}
+
+function PageHeader({ eyebrow, title, description }) {
+    return (
+        <div className="page-header glass-card fade-in-up">
+            <span className="page-eyebrow">{eyebrow}</span>
+            <h2 className="page-title">{title}</h2>
+            <p className="page-description">{description}</p>
+        </div>
+    );
+}
+
+function MetricCard({ label, value, tone = "default", detail }) {
+    return (
+        <div className={`metric-card metric-${tone}`}>
+            <span className="metric-label">{label}</span>
+            <h3 className="metric-value">{value}</h3>
+            {detail ? <small className="metric-detail">{detail}</small> : null}
+        </div>
+    );
+}
+
+function DataCard({ title, subtitle, children }) {
+    return (
+        <section className="panel-card data-card fade-in-up">
+            <div className="data-card-head">
+                <h5>{title}</h5>
+                {subtitle ? <p>{subtitle}</p> : null}
+            </div>
+            {children}
+        </section>
     );
 }
 
@@ -58,82 +112,48 @@ function LoginView({ onLogin, loading }) {
 
     return (
         <div className="login-page">
+            <div className="login-backdrop"></div>
             <div className="login-shell fade-in-up">
-                <div className="panel-left">
-                    <img src="/frontend/assets/logo.svg" alt="logo" style={{ width: 170 }} />
-                    <h2 className="mt-3 fw-bold">Faculty Analytics</h2>
-                    <p className="mb-0 text-white-50">
-                        Unified dashboard for student records, attendance intelligence, and marks analysis.
-                    </p>
-                </div>
-                <div className="panel-right">
-                    <h4 className="fw-bold">Sign In</h4>
-                    <div className="btn-group mt-2 mb-3 w-100">
-                        <button
-                            className={`btn ${loginMode === "email" ? "btn-primary" : "btn-outline-primary"}`}
-                            onClick={() => setLoginMode("email")}
-                        >
-                            Email
-                        </button>
-                        <button
-                            className={`btn ${loginMode === "username" ? "btn-primary" : "btn-outline-primary"}`}
-                            onClick={() => setLoginMode("username")}
-                        >
-                            Username
-                        </button>
+                <section className="login-story">
+                    <div className="story-badge">Academic Operations Suite</div>
+                    <img src="/frontend/assets/logo.svg" alt="Faculty Analytics" className="login-logo" />
+                    <h1>Faculty Analytics</h1>
+                    <p>Professional academic monitoring for student records, attendance signals, and performance intelligence.</p>
+                    <div className="story-grid">
+                        <div className="story-stat"><strong>Students</strong><span>Clean record control</span></div>
+                        <div className="story-stat"><strong>Attendance</strong><span>Risk visibility</span></div>
+                        <div className="story-stat"><strong>Reports</strong><span>Presentation-ready insights</span></div>
                     </div>
-                    {loginMode === "email" ? (
-                        <input
-                            className="form-control mb-2"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                        />
-                    ) : (
-                        <input
-                            className="form-control mb-2"
-                            placeholder="Username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                        />
-                    )}
-                    <input
-                        className="form-control mb-3"
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button
-                        disabled={loading}
-                        className="btn btn-dark w-100 fw-semibold"
-                        onClick={() => onLogin({ login_mode: loginMode, email, username, password })}
-                    >
-                        {loading ? "Signing in..." : "Login"}
+                </section>
+                <section className="login-panel">
+                    <span className="panel-kicker">Secure Sign In</span>
+                    <h3>Access faculty workspace</h3>
+                    <p className="panel-copy">Use your institutional credentials to continue.</p>
+                    <div className="mode-switcher">
+                        <button className={loginMode === "email" ? "active" : ""} onClick={() => setLoginMode("email")} type="button">Email</button>
+                        <button className={loginMode === "username" ? "active" : ""} onClick={() => setLoginMode("username")} type="button">Username</button>
+                    </div>
+                    <div className="form-stack">
+                        {loginMode === "email" ? (
+                            <label className="field-block">
+                                <span>Email</span>
+                                <input className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} />
+                            </label>
+                        ) : (
+                            <label className="field-block">
+                                <span>Username</span>
+                                <input className="form-control" value={username} onChange={(e) => setUsername(e.target.value)} />
+                            </label>
+                        )}
+                        <label className="field-block">
+                            <span>Password</span>
+                            <input className="form-control" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                        </label>
+                    </div>
+                    <button disabled={loading} className="btn btn-dark w-100 login-button" onClick={() => onLogin({ login_mode: loginMode, email, username, password })}>
+                        {loading ? "Signing in..." : "Enter Dashboard"}
                     </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function Pagination({ pagination, onPage }) {
-    if (!pagination) return null;
-    const { page, total_pages } = pagination;
-    return (
-        <div className="d-flex align-items-center justify-content-between mt-3">
-            <small className="text-secondary">Page {page} of {total_pages}</small>
-            <div className="btn-group">
-                <button className="btn btn-sm btn-outline-secondary" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-                    Previous
-                </button>
-                <button
-                    className="btn btn-sm btn-outline-secondary"
-                    disabled={page >= total_pages}
-                    onClick={() => onPage(page + 1)}
-                >
-                    Next
-                </button>
+                </section>
             </div>
         </div>
     );
@@ -148,7 +168,7 @@ function StudentsView({ token, notify, setLoading }) {
     const [pagination, setPagination] = useState(null);
     const [form, setForm] = useState({ roll: "", name: "", dept: "" });
 
-    const loadData = () => {
+    function loadData() {
         setLoading(true);
         apiRequest(`/api/students?q=${encodeURIComponent(q)}&dept=${encodeURIComponent(dept)}&page=${page}&per_page=8`, {}, token)
             .then((data) => {
@@ -156,61 +176,65 @@ function StudentsView({ token, notify, setLoading }) {
                 setDepartments(data.departments || []);
                 setPagination(data.pagination);
             })
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Students"))
             .finally(() => setLoading(false));
-    };
+    }
 
     useEffect(() => { loadData(); }, [q, dept, page]);
 
-    const addStudent = () => {
+    function addStudent() {
         setLoading(true);
         apiRequest("/api/students", { method: "POST", body: JSON.stringify(form) }, token)
             .then(() => {
-                notify("Student added", "success");
+                notify("Student record created successfully.", "success", "Students");
                 setForm({ roll: "", name: "", dept: "" });
                 loadData();
             })
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Students"))
             .finally(() => setLoading(false));
-    };
+    }
 
     return (
-        <div className="panel-card p-3 fade-in-up">
-            <div className="d-flex flex-wrap gap-2 align-items-end">
-                <div>
-                    <label className="form-label mb-1">Search</label>
-                    <input className="form-control" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
+        <div className="page-grid">
+            <PageHeader eyebrow="Student Directory" title="Manage student records" description="Search departments, add new learners, and keep the academic roster clean." />
+            <DataCard title="Directory Controls" subtitle="Filter and add student entries from one place.">
+                <div className="control-grid">
+                    <label className="field-block">
+                        <span>Search by name or roll</span>
+                        <input className="form-control" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
+                    </label>
+                    <label className="field-block">
+                        <span>Department</span>
+                        <select className="form-select" value={dept} onChange={(e) => { setPage(1); setDept(e.target.value); }}>
+                            <option value="">All Departments</option>
+                            {departments.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                    </label>
                 </div>
-                <div>
-                    <label className="form-label mb-1">Department</label>
-                    <select className="form-select" value={dept} onChange={(e) => { setPage(1); setDept(e.target.value); }}>
-                        <option value="">All</option>
-                        {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                    </select>
+                <div className="entry-grid">
+                    <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
+                    <input className="form-control" placeholder="Student Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                    <input className="form-control" placeholder="Department" value={form.dept} onChange={(e) => setForm({ ...form, dept: e.target.value })} />
+                    <button className="btn btn-dark" onClick={addStudent}>Add Student</button>
                 </div>
-            </div>
-            <hr />
-            <div className="row g-2">
-                <div className="col-md-2"><input className="form-control" placeholder="Roll" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} /></div>
-                <div className="col-md-5"><input className="form-control" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                <div className="col-md-3"><input className="form-control" placeholder="Dept" value={form.dept} onChange={(e) => setForm({ ...form, dept: e.target.value })} /></div>
-                <div className="col-md-2 d-grid"><button className="btn btn-primary" onClick={addStudent}>Add</button></div>
-            </div>
-            <div className="table-responsive mt-3">
-                <table className="table align-middle">
-                    <thead><tr><th>Roll</th><th>Name</th><th>Dept</th></tr></thead>
-                    <tbody>
-                        {rows.map((row) => (
-                            <tr key={row.roll_no}>
-                                <td>{row.roll_no}</td>
-                                <td>{row.name}</td>
-                                <td>{row.dept}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            <Pagination pagination={pagination} onPage={setPage} />
+            </DataCard>
+            <DataCard title="Student Records" subtitle="Current roster across departments.">
+                <div className="table-shell">
+                    <table className="table table-borderless align-middle ui-table">
+                        <thead><tr><th>Roll No</th><th>Name</th><th>Department</th></tr></thead>
+                        <tbody>
+                            {rows.length ? rows.map((row) => (
+                                <tr key={row.roll_no}>
+                                    <td><span className="table-chip">{row.roll_no}</span></td>
+                                    <td>{row.name}</td>
+                                    <td>{row.dept}</td>
+                                </tr>
+                            )) : <tr><td colSpan="3"><EmptyState message="No student records match the current filter." /></td></tr>}
+                        </tbody>
+                    </table>
+                </div>
+                <Pagination pagination={pagination} onPage={setPage} />
+            </DataCard>
         </div>
     );
 }
@@ -219,10 +243,10 @@ function AttendanceView({ token, notify, setLoading }) {
     const [rows, setRows] = useState([]);
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState(null);
-    const [summary, setSummary] = useState({ overall_percentage: 0, low_attendance_count: 0 });
+    const [summary, setSummary] = useState({ overall_percentage: 0, low_attendance_count: 0, total_attendance_rows: 0 });
     const [form, setForm] = useState({ roll: "", total: "", present: "" });
 
-    const loadData = () => {
+    function loadData() {
         setLoading(true);
         apiRequest(`/api/attendance?page=${page}&per_page=8`, {}, token)
             .then((data) => {
@@ -230,46 +254,63 @@ function AttendanceView({ token, notify, setLoading }) {
                 setPagination(data.pagination);
                 setSummary({
                     overall_percentage: data.overall_percentage || 0,
-                    low_attendance_count: data.low_attendance_count || 0
+                    low_attendance_count: data.low_attendance_count || 0,
+                    total_attendance_rows: data.total_attendance_rows || 0
                 });
             })
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Attendance"))
             .finally(() => setLoading(false));
-    };
+    }
 
     useEffect(() => { loadData(); }, [page]);
 
-    const addAttendance = () => {
+    function addAttendance() {
         setLoading(true);
         apiRequest("/api/attendance", { method: "POST", body: JSON.stringify(form) }, token)
             .then(() => {
-                notify("Attendance saved", "success");
+                notify("Attendance record saved successfully.", "success", "Attendance");
                 setForm({ roll: "", total: "", present: "" });
                 loadData();
             })
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Attendance"))
             .finally(() => setLoading(false));
-    };
+    }
 
     return (
-        <div className="panel-card p-3 fade-in-up">
-            <div className="d-flex gap-3 flex-wrap">
-                <span className="badge text-bg-success">Overall: {summary.overall_percentage}%</span>
-                <span className="badge text-bg-danger">Low Attendance: {summary.low_attendance_count}</span>
+        <div className="page-grid">
+            <PageHeader eyebrow="Attendance Tracker" title="Track class participation" description="Monitor class presence, identify weak attendance early, and maintain a clean log." />
+            <div className="metrics-grid">
+                <MetricCard label="Overall Attendance" value={`${summary.overall_percentage}%`} tone="emerald" detail="Institution-wide view" />
+                <MetricCard label="Low Attendance Cases" value={summary.low_attendance_count} tone="rose" detail="Below 75 percent" />
+                <MetricCard label="Total Records" value={summary.total_attendance_rows} tone="slate" detail="Attendance rows captured" />
             </div>
-            <div className="row g-2 mt-2">
-                <div className="col-md-3"><input className="form-control" placeholder="Roll" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} /></div>
-                <div className="col-md-3"><input className="form-control" placeholder="Total" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} /></div>
-                <div className="col-md-3"><input className="form-control" placeholder="Present" value={form.present} onChange={(e) => setForm({ ...form, present: e.target.value })} /></div>
-                <div className="col-md-3 d-grid"><button className="btn btn-primary" onClick={addAttendance}>Add</button></div>
-            </div>
-            <div className="table-responsive mt-3">
-                <table className="table">
-                    <thead><tr><th>ID</th><th>Roll</th><th>Total</th><th>Present</th><th>%</th></tr></thead>
-                    <tbody>{rows.map((r) => <tr key={r.id}><td>{r.id}</td><td>{r.roll_no}</td><td>{r.total}</td><td>{r.present}</td><td>{r.percentage}</td></tr>)}</tbody>
-                </table>
-            </div>
-            <Pagination pagination={pagination} onPage={setPage} />
+            <DataCard title="Add Attendance Row" subtitle="Record the latest attendance values.">
+                <div className="entry-grid">
+                    <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
+                    <input className="form-control" placeholder="Total Classes" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} />
+                    <input className="form-control" placeholder="Present Classes" value={form.present} onChange={(e) => setForm({ ...form, present: e.target.value })} />
+                    <button className="btn btn-dark" onClick={addAttendance}>Save Attendance</button>
+                </div>
+            </DataCard>
+            <DataCard title="Attendance Register" subtitle="Paginated attendance history for review.">
+                <div className="table-shell">
+                    <table className="table table-borderless align-middle ui-table">
+                        <thead><tr><th>ID</th><th>Roll No</th><th>Total</th><th>Present</th><th>Percentage</th></tr></thead>
+                        <tbody>
+                            {rows.length ? rows.map((row) => (
+                                <tr key={row.id}>
+                                    <td>{row.id}</td>
+                                    <td><span className="table-chip">{row.roll_no}</span></td>
+                                    <td>{row.total}</td>
+                                    <td>{row.present}</td>
+                                    <td>{row.percentage}%</td>
+                                </tr>
+                            )) : <tr><td colSpan="5"><EmptyState message="No attendance entries available yet." /></td></tr>}
+                        </tbody>
+                    </table>
+                </div>
+                <Pagination pagination={pagination} onPage={setPage} />
+            </DataCard>
         </div>
     );
 }
@@ -279,10 +320,10 @@ function MarksView({ token, notify, setLoading }) {
     const [q, setQ] = useState("");
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState(null);
-    const [stats, setStats] = useState({ avg_marks: 0, high_scorers: 0, subject_count: 0 });
+    const [stats, setStats] = useState({ avg_marks: 0, high_scorers: 0, subject_count: 0, total_marks_rows: 0 });
     const [form, setForm] = useState({ roll: "", subject: "", marks: "" });
 
-    const loadData = () => {
+    function loadData() {
         setLoading(true);
         apiRequest(`/api/marks?q=${encodeURIComponent(q)}&page=${page}&per_page=8`, {}, token)
             .then((data) => {
@@ -291,48 +332,68 @@ function MarksView({ token, notify, setLoading }) {
                 setStats({
                     avg_marks: data.avg_marks || 0,
                     high_scorers: data.high_scorers || 0,
-                    subject_count: data.subject_count || 0
+                    subject_count: data.subject_count || 0,
+                    total_marks_rows: data.total_marks_rows || 0
                 });
             })
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Marks"))
             .finally(() => setLoading(false));
-    };
+    }
 
     useEffect(() => { loadData(); }, [q, page]);
 
-    const addMarks = () => {
+    function addMarks() {
         setLoading(true);
         apiRequest("/api/marks", { method: "POST", body: JSON.stringify(form) }, token)
             .then(() => {
-                notify("Marks saved", "success");
+                notify("Marks saved successfully.", "success", "Marks");
                 setForm({ roll: "", subject: "", marks: "" });
                 loadData();
             })
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Marks"))
             .finally(() => setLoading(false));
-    };
+    }
 
     return (
-        <div className="panel-card p-3 fade-in-up">
-            <div className="d-flex gap-3 flex-wrap mb-2">
-                <span className="badge text-bg-primary">Average: {stats.avg_marks}</span>
-                <span className="badge text-bg-success">90+: {stats.high_scorers}</span>
-                <span className="badge text-bg-warning">Subjects: {stats.subject_count}</span>
+        <div className="page-grid">
+            <PageHeader eyebrow="Marks Ledger" title="Manage subject scores" description="Search performance, record subject marks, and monitor strong and weak trends." />
+            <div className="metrics-grid">
+                <MetricCard label="Average Marks" value={stats.avg_marks} tone="blue" detail="Across current filter" />
+                <MetricCard label="High Scorers" value={stats.high_scorers} tone="amber" detail="Scores 90 and above" />
+                <MetricCard label="Subjects" value={stats.subject_count} tone="slate" detail={`${stats.total_marks_rows} total entries`} />
             </div>
-            <div className="row g-2">
-                <div className="col-md-4"><input className="form-control" placeholder="Search by roll/subject" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} /></div>
-                <div className="col-md-2"><input className="form-control" placeholder="Roll" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} /></div>
-                <div className="col-md-3"><input className="form-control" placeholder="Subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} /></div>
-                <div className="col-md-2"><input className="form-control" placeholder="Marks" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} /></div>
-                <div className="col-md-1 d-grid"><button className="btn btn-primary" onClick={addMarks}>Add</button></div>
-            </div>
-            <div className="table-responsive mt-3">
-                <table className="table">
-                    <thead><tr><th>ID</th><th>Roll</th><th>Subject</th><th>Marks</th></tr></thead>
-                    <tbody>{rows.map((r) => <tr key={r.id}><td>{r.id}</td><td>{r.roll_no}</td><td>{r.subject}</td><td>{r.marks}</td></tr>)}</tbody>
-                </table>
-            </div>
-            <Pagination pagination={pagination} onPage={setPage} />
+            <DataCard title="Search and Add Marks" subtitle="Keep assessment data current and searchable.">
+                <div className="control-grid">
+                    <label className="field-block field-wide">
+                        <span>Search by roll or subject</span>
+                        <input className="form-control" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
+                    </label>
+                </div>
+                <div className="entry-grid entry-grid-marks">
+                    <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
+                    <input className="form-control" placeholder="Subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+                    <input className="form-control" placeholder="Marks" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} />
+                    <button className="btn btn-dark" onClick={addMarks}>Save Marks</button>
+                </div>
+            </DataCard>
+            <DataCard title="Marks Register" subtitle="Paginated subject mark entries.">
+                <div className="table-shell">
+                    <table className="table table-borderless align-middle ui-table">
+                        <thead><tr><th>ID</th><th>Roll No</th><th>Subject</th><th>Marks</th></tr></thead>
+                        <tbody>
+                            {rows.length ? rows.map((row) => (
+                                <tr key={row.id}>
+                                    <td>{row.id}</td>
+                                    <td><span className="table-chip">{row.roll_no}</span></td>
+                                    <td>{row.subject}</td>
+                                    <td>{row.marks}</td>
+                                </tr>
+                            )) : <tr><td colSpan="4"><EmptyState message="No marks data available for the current search." /></td></tr>}
+                        </tbody>
+                    </table>
+                </div>
+                <Pagination pagination={pagination} onPage={setPage} />
+            </DataCard>
         </div>
     );
 }
@@ -344,76 +405,100 @@ function DashboardView({ token, notify, setLoading }) {
         setLoading(true);
         apiRequest("/api/dashboard", {}, token)
             .then((res) => setData(res))
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Dashboard"))
             .finally(() => setLoading(false));
     }, []);
 
     return (
-        <div className="row g-3 fade-in-up">
-            <div className="col-md-4"><div className="panel-card p-3"><small>Total Students</small><h3>{data.students}</h3></div></div>
-            <div className="col-md-4"><div className="panel-card p-3"><small>Attendance Rows</small><h3>{data.attendance}</h3></div></div>
-            <div className="col-md-4"><div className="panel-card p-3"><small>Marks Rows</small><h3>{data.marks}</h3></div></div>
-            <div className="col-md-6">
-                <div className="panel-card p-3 h-100">
-                    <h6 className="fw-bold">Top Performers</h6>
-                    <ul className="mb-0">{(data.top_performers || []).map((s) => <li key={s.roll_no}>{s.name} ({s.avg_marks})</li>)}</ul>
-                </div>
+        <div className="page-grid">
+            <PageHeader eyebrow="Command Center" title="Academic performance overview" description="A professional snapshot of activity, high performers, and intervention candidates." />
+            <div className="metrics-grid metrics-grid-hero">
+                <MetricCard label="Students" value={data.students} tone="blue" detail="Registered student profiles" />
+                <MetricCard label="Attendance Rows" value={data.attendance} tone="emerald" detail="Tracked attendance entries" />
+                <MetricCard label="Marks Rows" value={data.marks} tone="amber" detail="Recorded evaluations" />
             </div>
-            <div className="col-md-6">
-                <div className="panel-card p-3 h-100">
-                    <h6 className="fw-bold">At Risk</h6>
-                    <ul className="mb-0">{(data.at_risk_students || []).map((s) => <li key={s.roll_no}>{s.name} ({s.risk_flags.join(", ")})</li>)}</ul>
-                </div>
+            <div className="split-grid">
+                <DataCard title="Top Performers" subtitle="Students leading the current academic snapshot.">
+                    {(data.top_performers || []).length ? data.top_performers.map((item) => (
+                        <div className="list-row" key={item.roll_no}>
+                            <div><strong>{item.name}</strong><span>Roll {item.roll_no}</span></div>
+                            <span className="score-badge">{item.avg_marks}</span>
+                        </div>
+                    )) : <EmptyState message="No top performer data available." />}
+                </DataCard>
+                <DataCard title="At-Risk Students" subtitle="Students requiring attention due to marks or attendance.">
+                    {(data.at_risk_students || []).length ? data.at_risk_students.map((item) => (
+                        <div className="list-row" key={item.roll_no}>
+                            <div><strong>{item.name}</strong><span>Roll {item.roll_no}</span></div>
+                            <span className="risk-badge">{(item.risk_flags || []).join(", ")}</span>
+                        </div>
+                    )) : <EmptyState message="No at-risk students identified." />}
+                </DataCard>
             </div>
         </div>
     );
 }
 
 function ReportsView({ token, notify, setLoading }) {
-    const [data, setData] = useState({
-        total_students: 0, total_at_risk: 0, avg_attendance: 0, avg_marks: 0,
-        department_rows: [], subject_rows: []
-    });
+    const [data, setData] = useState({ total_students: 0, total_at_risk: 0, avg_attendance: 0, avg_marks: 0, department_rows: [], subject_rows: [] });
 
     useEffect(() => {
         setLoading(true);
         apiRequest("/api/reports", {}, token)
             .then((res) => setData(res))
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Reports"))
             .finally(() => setLoading(false));
     }, []);
 
     return (
-        <div className="fade-in-up">
-            <div className="row g-3 mb-3">
-                <div className="col-md-3"><div className="panel-card p-3"><small>Students</small><h4>{data.total_students}</h4></div></div>
-                <div className="col-md-3"><div className="panel-card p-3"><small>At Risk</small><h4>{data.total_at_risk}</h4></div></div>
-                <div className="col-md-3"><div className="panel-card p-3"><small>Avg Attendance</small><h4>{data.avg_attendance}%</h4></div></div>
-                <div className="col-md-3"><div className="panel-card p-3"><small>Avg Marks</small><h4>{data.avg_marks}</h4></div></div>
+        <div className="page-grid">
+            <PageHeader eyebrow="Reports" title="Department and subject intelligence" description="Use presentation-ready analytics to explain patterns and risk distribution." />
+            <div className="metrics-grid">
+                <MetricCard label="Students" value={data.total_students} tone="blue" />
+                <MetricCard label="At Risk" value={data.total_at_risk} tone="rose" />
+                <MetricCard label="Average Attendance" value={`${data.avg_attendance}%`} tone="emerald" />
+                <MetricCard label="Average Marks" value={data.avg_marks} tone="amber" />
             </div>
-            <div className="panel-card p-3 mb-3">
-                <h6 className="fw-bold">Department Analytics</h6>
-                <div className="table-responsive">
-                    <table className="table">
-                        <thead><tr><th>Dept</th><th>Students</th><th>Avg Attendance</th><th>Avg Marks</th><th>At Risk</th></tr></thead>
-                        <tbody>{(data.department_rows || []).map((r) => <tr key={r.dept}><td>{r.dept}</td><td>{r.students}</td><td>{r.avg_attendance}</td><td>{r.avg_marks}</td><td>{r.at_risk_count}</td></tr>)}</tbody>
+            <DataCard title="Department Analytics" subtitle="Cross-department academic view.">
+                <div className="table-shell">
+                    <table className="table table-borderless align-middle ui-table">
+                        <thead><tr><th>Department</th><th>Students</th><th>Avg Attendance</th><th>Avg Marks</th><th>At Risk</th></tr></thead>
+                        <tbody>
+                            {(data.department_rows || []).length ? data.department_rows.map((row) => (
+                                <tr key={row.dept}>
+                                    <td>{row.dept}</td>
+                                    <td>{row.students}</td>
+                                    <td>{row.avg_attendance}%</td>
+                                    <td>{row.avg_marks}</td>
+                                    <td><span className="risk-badge">{row.at_risk_count}</span></td>
+                                </tr>
+                            )) : <tr><td colSpan="5"><EmptyState message="No department analytics available." /></td></tr>}
+                        </tbody>
                     </table>
                 </div>
-            </div>
-            <div className="panel-card p-3">
-                <h6 className="fw-bold">Subject Analytics</h6>
-                <div className="table-responsive">
-                    <table className="table">
-                        <thead><tr><th>Subject</th><th>Entries</th><th>Avg</th><th>Max</th><th>Min</th></tr></thead>
-                        <tbody>{(data.subject_rows || []).map((r) => <tr key={r.subject}><td>{r.subject}</td><td>{r.entries}</td><td>{r.avg_score}</td><td>{r.max_score}</td><td>{r.min_score}</td></tr>)}</tbody>
+            </DataCard>
+            <DataCard title="Subject Analytics" subtitle="Performance spread by subject.">
+                <div className="table-shell">
+                    <table className="table table-borderless align-middle ui-table">
+                        <thead><tr><th>Subject</th><th>Entries</th><th>Average</th><th>Max</th><th>Min</th></tr></thead>
+                        <tbody>
+                            {(data.subject_rows || []).length ? data.subject_rows.map((row) => (
+                                <tr key={row.subject}>
+                                    <td>{row.subject}</td>
+                                    <td>{row.entries}</td>
+                                    <td>{row.avg_score}</td>
+                                    <td>{row.max_score}</td>
+                                    <td>{row.min_score}</td>
+                                </tr>
+                            )) : <tr><td colSpan="5"><EmptyState message="No subject analytics available." /></td></tr>}
+                        </tbody>
                     </table>
                 </div>
-            </div>
+            </DataCard>
         </div>
     );
 }
 
-// Route-level lazy wrappers for dashboard modules.
 const LazyDashboardView = React.lazy(() => Promise.resolve({ default: DashboardView }));
 const LazyStudentsView = React.lazy(() => Promise.resolve({ default: StudentsView }));
 const LazyAttendanceView = React.lazy(() => Promise.resolve({ default: AttendanceView }));
@@ -423,22 +508,20 @@ const LazyReportsView = React.lazy(() => Promise.resolve({ default: ReportsView 
 function AppShell({ route, token, setToken, user, setUser, notify }) {
     const [loading, setLoading] = useState(false);
     const [currentRoute, setCurrentRoute] = useState(route === "login" ? "dashboard" : route);
-
     const navItems = useMemo(() => ([
-        ["dashboard", "Dashboard"],
-        ["students", "Students"],
-        ["attendance", "Attendance"],
-        ["marks", "Marks"],
-        ["reports", "Reports"]
+        ["dashboard", "Dashboard", "Overview and key insights"],
+        ["students", "Students", "Academic roster management"],
+        ["attendance", "Attendance", "Presence and risk tracking"],
+        ["marks", "Marks", "Scores and evaluations"],
+        ["reports", "Reports", "Presentation-ready analytics"]
     ]), []);
 
-    const go = (next) => {
+    function go(next) {
         setCurrentRoute(next);
-        const target = next === "dashboard" ? "/dashboard" : `/${next}`;
-        window.history.replaceState({}, "", target);
-    };
+        window.history.replaceState({}, "", next === "dashboard" ? "/dashboard" : `/${next}`);
+    }
 
-    const logout = () => {
+    function logout() {
         setLoading(true);
         apiRequest("/api/logout", { method: "POST" }, token)
             .catch(() => null)
@@ -450,44 +533,47 @@ function AppShell({ route, token, setToken, user, setUser, notify }) {
                 window.history.replaceState({}, "", "/login");
                 setLoading(false);
             });
-    };
+    }
 
-    const routeNode = (() => {
-        if (currentRoute === "students") return <LazyStudentsView token={token} notify={notify} setLoading={setLoading} />;
-        if (currentRoute === "attendance") return <LazyAttendanceView token={token} notify={notify} setLoading={setLoading} />;
-        if (currentRoute === "marks") return <LazyMarksView token={token} notify={notify} setLoading={setLoading} />;
-        if (currentRoute === "reports") return <LazyReportsView token={token} notify={notify} setLoading={setLoading} />;
-        return <LazyDashboardView token={token} notify={notify} setLoading={setLoading} />;
-    })();
+    const routeNode = currentRoute === "students"
+        ? <LazyStudentsView token={token} notify={notify} setLoading={setLoading} />
+        : currentRoute === "attendance"
+            ? <LazyAttendanceView token={token} notify={notify} setLoading={setLoading} />
+            : currentRoute === "marks"
+                ? <LazyMarksView token={token} notify={notify} setLoading={setLoading} />
+                : currentRoute === "reports"
+                    ? <LazyReportsView token={token} notify={notify} setLoading={setLoading} />
+                    : <LazyDashboardView token={token} notify={notify} setLoading={setLoading} />;
 
     return (
-        <div className="container-fluid app-shell">
+        <div className="app-shell">
             <Loader show={loading} />
-            <div className="row">
-                <aside className="col-lg-2 col-md-3 sidebar">
+            <aside className="sidebar">
+                <div className="sidebar-brand">
                     <img className="brand-logo" src="/frontend/assets/logo-mark.svg" alt="logo" />
-                    <h6 className="fw-bold">Faculty Analytics</h6>
-                    <small className="text-white-50 d-block mb-3">{user}</small>
-                    <nav className="nav flex-column gap-1">
-                        {navItems.map(([id, label]) => (
-                            <a
-                                key={id}
-                                className={`nav-link ${currentRoute === id ? "active" : ""}`}
-                                href="#"
-                                onClick={(e) => { e.preventDefault(); go(id); }}
-                            >
-                                {label}
-                            </a>
-                        ))}
-                    </nav>
-                    <button className="btn btn-outline-light btn-sm mt-3" onClick={logout}>Logout</button>
-                </aside>
-                <main className="col-lg-10 col-md-9 content-area">
-                    <React.Suspense fallback={<div className="panel-card p-3">Loading module...</div>}>
-                        {routeNode}
-                    </React.Suspense>
-                </main>
-            </div>
+                    <div><strong>Faculty Analytics</strong><span>Institution Control Panel</span></div>
+                </div>
+                <div className="user-badge">
+                    <span className="user-dot"></span>
+                    <div><strong>{user}</strong><small>Faculty session active</small></div>
+                </div>
+                <nav className="nav-stack">
+                    {navItems.map(([id, label, meta]) => (
+                        <a key={id} className={`nav-item ${currentRoute === id ? "active" : ""}`} href="#" onClick={(e) => { e.preventDefault(); go(id); }}>
+                            <strong>{label}</strong>
+                            <span>{meta}</span>
+                        </a>
+                    ))}
+                </nav>
+                <button className="btn btn-outline-light sidebar-logout" onClick={logout}>Logout</button>
+            </aside>
+            <main className="main-area">
+                <header className="topbar">
+                    <div><span className="topbar-kicker">Live Workspace</span><h1>{navItems.find((item) => item[0] === currentRoute)?.[1] || "Dashboard"}</h1></div>
+                    <div className="topbar-pill">Render-ready academic management</div>
+                </header>
+                <React.Suspense fallback={<div className="panel-card p-3">Loading module...</div>}>{routeNode}</React.Suspense>
+            </main>
         </div>
     );
 }
@@ -499,15 +585,13 @@ function App() {
     const [loading, setLoading] = useState(false);
     const [toasts, setToasts] = useState([]);
 
-    const notify = (message, type = "info") => {
+    function notify(message, type = "info", title = "System") {
         const id = `${Date.now()}-${Math.random()}`;
-        setToasts((prev) => [...prev, { id, message, type }]);
-        setTimeout(() => {
-            setToasts((prev) => prev.filter((toast) => toast.id !== id));
-        }, 2600);
-    };
+        setToasts((prev) => [...prev, { id, title, message, type }]);
+        setTimeout(() => setToasts((prev) => prev.filter((item) => item.id !== id)), 2800);
+    }
 
-    const onLogin = (payload) => {
+    function onLogin(payload) {
         setLoading(true);
         apiRequest("/api/login", { method: "POST", body: JSON.stringify(payload) })
             .then((data) => {
@@ -515,22 +599,18 @@ function App() {
                 setUser(data.user);
                 localStorage.setItem(TOKEN_KEY, data.token);
                 localStorage.setItem(USER_KEY, data.user);
-                notify("Login successful", "success");
+                notify("Login successful. Workspace is ready.", "success", "Authentication");
                 window.history.replaceState({}, "", "/dashboard");
             })
-            .catch((err) => notify(err.message, "error"))
+            .catch((err) => notify(err.message, "error", "Authentication"))
             .finally(() => setLoading(false));
-    };
+    }
 
     return (
         <>
             <Loader show={loading} />
-            <Toasts toasts={toasts} onRemove={(id) => setToasts((prev) => prev.filter((x) => x.id !== id))} />
-            {!token ? (
-                <LoginView onLogin={onLogin} loading={loading} />
-            ) : (
-                <AppShell route={route} token={token} setToken={setToken} user={user} setUser={setUser} notify={notify} />
-            )}
+            <Toasts toasts={toasts} onRemove={(id) => setToasts((prev) => prev.filter((item) => item.id !== id))} />
+            {!token ? <LoginView onLogin={onLogin} loading={loading} /> : <AppShell route={route} token={token} setToken={setToken} user={user} setUser={setUser} notify={notify} />}
         </>
     );
 }
