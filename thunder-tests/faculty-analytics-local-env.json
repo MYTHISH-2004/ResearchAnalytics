@@ -1,0 +1,28 @@
+{
+  "client": "Thunder Client",
+  "environmentName": "Faculty Analytics Local",
+  "dateExported": "2026-03-07T00:00:00.000Z",
+  "version": "1.0",
+  "variables": [
+    {
+      "name": "baseUrl",
+      "value": "http://127.0.0.1:5000"
+    },
+    {
+      "name": "token",
+      "value": ""
+    },
+    {
+      "name": "testRoll",
+      "value": "9999"
+    },
+    {
+      "name": "attendanceId",
+      "value": ""
+    },
+    {
+      "name": "markId",
+      "value": ""
+    }
+  ]
+}

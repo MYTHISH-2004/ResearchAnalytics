@@ -1,0 +1,260 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "Faculty Analytics API",
+  "dateExported": "2026-03-07T00:00:00.000Z",
+  "version": "1.1",
+  "folders": [],
+  "requests": [
+    {
+      "_id": "req_login",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Login",
+      "url": "{{baseUrl}}/api/login",
+      "method": "POST",
+      "sortNum": 10000,
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"login_mode\": \"email\",\n  \"email\": \"mythish.ad23@bitsathy.ac.in\",\n  \"password\": \"My1907\"\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "req_dashboard",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Dashboard",
+      "url": "{{baseUrl}}/api/dashboard",
+      "method": "GET",
+      "sortNum": 11000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    },
+    {
+      "_id": "req_students_list",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Students List",
+      "url": "{{baseUrl}}/api/students",
+      "method": "GET",
+      "sortNum": 12000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    },
+    {
+      "_id": "req_students_create",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Students Create",
+      "url": "{{baseUrl}}/api/students",
+      "method": "POST",
+      "sortNum": 13000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"roll\": {{testRoll}},\n  \"name\": \"TC Test Student\",\n  \"dept\": \"CSE\"\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "req_students_update",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Students Update",
+      "url": "{{baseUrl}}/api/students/{{testRoll}}",
+      "method": "PUT",
+      "sortNum": 14000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"name\": \"TC Updated Student\",\n  \"dept\": \"AIML\"\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "req_attendance_create",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Attendance Create",
+      "url": "{{baseUrl}}/api/attendance",
+      "method": "POST",
+      "sortNum": 15000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"roll\": {{testRoll}},\n  \"total\": 30,\n  \"present\": 27\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "req_attendance_list",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Attendance List",
+      "url": "{{baseUrl}}/api/attendance",
+      "method": "GET",
+      "sortNum": 16000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    },
+    {
+      "_id": "req_attendance_delete",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Attendance Delete",
+      "url": "{{baseUrl}}/api/attendance/{{attendanceId}}",
+      "method": "DELETE",
+      "sortNum": 17000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    },
+    {
+      "_id": "req_marks_create",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Marks Create",
+      "url": "{{baseUrl}}/api/marks",
+      "method": "POST",
+      "sortNum": 18000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"roll\": {{testRoll}},\n  \"subject\": \"Math\",\n  \"marks\": 88\n}",
+        "form": []
+      }
+    },
+    {
+      "_id": "req_marks_list",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Marks List",
+      "url": "{{baseUrl}}/api/marks",
+      "method": "GET",
+      "sortNum": 19000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    },
+    {
+      "_id": "req_marks_delete",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Marks Delete",
+      "url": "{{baseUrl}}/api/marks/{{markId}}",
+      "method": "DELETE",
+      "sortNum": 20000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    },
+    {
+      "_id": "req_students_delete",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Students Delete",
+      "url": "{{baseUrl}}/api/students/{{testRoll}}",
+      "method": "DELETE",
+      "sortNum": 21000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    },
+    {
+      "_id": "req_reports",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Reports",
+      "url": "{{baseUrl}}/api/reports",
+      "method": "GET",
+      "sortNum": 22000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    },
+    {
+      "_id": "req_logout",
+      "colId": "faculty_analytics_api",
+      "containerId": "",
+      "name": "Logout",
+      "url": "{{baseUrl}}/api/logout",
+      "method": "POST",
+      "sortNum": 23000,
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ]
+    }
+  ]
+}
