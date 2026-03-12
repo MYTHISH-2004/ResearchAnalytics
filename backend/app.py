@@ -157,6 +157,48 @@ def paginate_query(query, page, per_page):
     }
 
 
+def seed_demo_data_if_empty():
+    if Student.query.count() or Attendance.query.count() or Marks.query.count():
+        return
+
+    demo_students = [
+        Student(roll_no=101, name="Asha R", dept="CSE"),
+        Student(roll_no=102, name="Bharath K", dept="ECE"),
+        Student(roll_no=103, name="Charan M", dept="IT"),
+        Student(roll_no=104, name="Divya S", dept="CSE"),
+        Student(roll_no=105, name="Eswar P", dept="AIML"),
+        Student(roll_no=106, name="Farhana N", dept="EEE"),
+    ]
+    demo_attendance = [
+        Attendance(roll_no=101, total=40, present=37),
+        Attendance(roll_no=102, total=40, present=30),
+        Attendance(roll_no=103, total=40, present=35),
+        Attendance(roll_no=104, total=40, present=39),
+        Attendance(roll_no=105, total=40, present=28),
+        Attendance(roll_no=106, total=40, present=33),
+    ]
+    demo_marks = [
+        Marks(roll_no=101, subject="Maths", marks=92),
+        Marks(roll_no=101, subject="Physics", marks=88),
+        Marks(roll_no=102, subject="Maths", marks=61),
+        Marks(roll_no=102, subject="Circuits", marks=58),
+        Marks(roll_no=103, subject="Python", marks=84),
+        Marks(roll_no=103, subject="DBMS", marks=79),
+        Marks(roll_no=104, subject="Maths", marks=95),
+        Marks(roll_no=104, subject="Chemistry", marks=90),
+        Marks(roll_no=105, subject="ML", marks=49),
+        Marks(roll_no=105, subject="Python", marks=55),
+        Marks(roll_no=106, subject="Machines", marks=72),
+        Marks(roll_no=106, subject="Networks", marks=68),
+    ]
+
+    db.session.add_all(demo_students)
+    db.session.add_all(demo_attendance)
+    db.session.add_all(demo_marks)
+    db.session.commit()
+    logger.info("Seeded demo data for empty database")
+
+
 with app.app_context():
     db.create_all()
     inspector = inspect(db.engine)
@@ -207,6 +249,7 @@ with app.app_context():
     db.session.execute(text("CREATE INDEX IF NOT EXISTS idx_marks_roll_no ON marks(roll_no)"))
     db.session.execute(text("CREATE INDEX IF NOT EXISTS idx_marks_subject ON marks(subject)"))
     db.session.commit()
+    seed_demo_data_if_empty()
 
 
 def build_student_insights():
