@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+backend/__pycache__/
+backend/tests/__pycache__/
+backend/run.out.log
+backend/run.err.log
+backend/instance/database.db
