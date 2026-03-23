@@ -104,6 +104,15 @@ function DataCard({ title, subtitle, children }) {
     );
 }
 
+function ActionButtons({ onEdit, onDelete }) {
+    return (
+        <div className="action-group">
+            {onEdit ? <button type="button" className="btn btn-sm btn-outline-secondary action-btn" onClick={onEdit}>Edit</button> : null}
+            {onDelete ? <button type="button" className="btn btn-sm btn-outline-danger action-btn" onClick={onDelete}>Delete</button> : null}
+        </div>
+    );
+}
+
 function StudentProfileModal({ student, onClose }) {
     if (!student) return null;
     const riskFlags = student.risk_flags || [];
@@ -253,6 +262,7 @@ function StudentsView({ token, notify, setLoading }) {
     const [pagination, setPagination] = useState(null);
     const [form, setForm] = useState({ roll: "", name: "", dept: "" });
     const [selectedStudent, setSelectedStudent] = useState(null);
+    const [editingRoll, setEditingRoll] = useState(null);
 
     function loadData() {
         setLoading(true);
@@ -268,12 +278,37 @@ function StudentsView({ token, notify, setLoading }) {
 
     useEffect(() => { loadData(); }, [q, dept, page]);
 
-    function addStudent() {
+    function saveStudent() {
         setLoading(true);
-        apiRequest("/api/students", { method: "POST", body: JSON.stringify(form) }, token)
+        const isEditing = Boolean(editingRoll);
+        const path = isEditing ? `/api/students/${editingRoll}` : "/api/students";
+        const method = isEditing ? "PUT" : "POST";
+        apiRequest(path, { method, body: JSON.stringify(form) }, token)
             .then(() => {
-                notify("Student record created successfully.", "success", "Students");
+                notify(isEditing ? "Student record updated successfully." : "Student record created successfully.", "success", "Students");
                 setForm({ roll: "", name: "", dept: "" });
+                setEditingRoll(null);
+                loadData();
+            })
+            .catch((err) => notify(err.message, "error", "Students"))
+            .finally(() => setLoading(false));
+    }
+
+    function editStudent(row) {
+        setEditingRoll(row.roll_no);
+        setForm({ roll: String(row.roll_no), name: row.name, dept: row.dept });
+    }
+
+    function deleteStudent(rollNo) {
+        if (!window.confirm(`Delete student ${rollNo}?`)) return;
+        setLoading(true);
+        apiRequest(`/api/students/${rollNo}`, { method: "DELETE" }, token)
+            .then(() => {
+                notify("Student record deleted successfully.", "success", "Students");
+                if (editingRoll === rollNo) {
+                    setEditingRoll(null);
+                    setForm({ roll: "", name: "", dept: "" });
+                }
                 loadData();
             })
             .catch((err) => notify(err.message, "error", "Students"))
@@ -329,19 +364,22 @@ function StudentsView({ token, notify, setLoading }) {
                     </div>
                     <div className="section-note">Use the filter set to isolate a department or locate a profile quickly during review meetings.</div>
                 </DataCard>
-                <DataCard title="Add New Student" subtitle="Register a new learner in the academic system.">
+                <DataCard title={editingRoll ? "Edit Student" : "Add New Student"} subtitle={editingRoll ? "Update the selected student record." : "Register a new learner in the academic system."}>
                     <div className="entry-stack">
-                        <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
+                        <input className="form-control" placeholder="Roll No" disabled={Boolean(editingRoll)} value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
                         <input className="form-control" placeholder="Student Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                         <input className="form-control" placeholder="Department" value={form.dept} onChange={(e) => setForm({ ...form, dept: e.target.value })} />
-                        <button className="btn btn-dark btn-wide" onClick={addStudent}>Add Student</button>
+                        <div className="action-row">
+                            <button className="btn btn-dark btn-wide" onClick={saveStudent}>{editingRoll ? "Update Student" : "Add Student"}</button>
+                            {editingRoll ? <button type="button" className="btn btn-outline-secondary btn-wide" onClick={() => { setEditingRoll(null); setForm({ roll: "", name: "", dept: "" }); }}>Cancel</button> : null}
+                        </div>
                     </div>
                 </DataCard>
             </div>
             <DataCard title="Student Records" subtitle="Current roster across departments with identity and ownership details.">
                 <div className="table-shell">
                     <table className="table table-borderless align-middle ui-table">
-                        <thead><tr><th>Profile</th><th>Student Identity</th><th>Department</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Profile</th><th>Student Identity</th><th>Department</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody>
                             {rows.length ? rows.map((row) => (
                                 <tr key={row.roll_no}>
@@ -364,8 +402,9 @@ function StudentsView({ token, notify, setLoading }) {
                                     </td>
                                     <td><span className="neutral-badge">{row.dept}</span></td>
                                     <td><span className="status-badge status-active">Active Record</span></td>
+                                    <td><ActionButtons onEdit={() => editStudent(row)} onDelete={() => deleteStudent(row.roll_no)} /></td>
                                 </tr>
-                            )) : <tr><td colSpan="4"><EmptyState message="No student records match the current filter." /></td></tr>}
+                            )) : <tr><td colSpan="5"><EmptyState message="No student records match the current filter." /></td></tr>}
                         </tbody>
                     </table>
                 </div>
@@ -381,6 +420,7 @@ function AttendanceView({ token, notify, setLoading }) {
     const [pagination, setPagination] = useState(null);
     const [summary, setSummary] = useState({ overall_percentage: 0, low_attendance_count: 0, total_attendance_rows: 0 });
     const [form, setForm] = useState({ roll: "", total: "", present: "" });
+    const [editingId, setEditingId] = useState(null);
 
     function loadData() {
         setLoading(true);
@@ -400,12 +440,36 @@ function AttendanceView({ token, notify, setLoading }) {
 
     useEffect(() => { loadData(); }, [page]);
 
-    function addAttendance() {
+    function saveAttendance() {
         setLoading(true);
-        apiRequest("/api/attendance", { method: "POST", body: JSON.stringify(form) }, token)
+        const path = editingId ? `/api/attendance/${editingId}` : "/api/attendance";
+        const method = editingId ? "PUT" : "POST";
+        apiRequest(path, { method, body: JSON.stringify(form) }, token)
             .then(() => {
-                notify("Attendance record saved successfully.", "success", "Attendance");
+                notify(editingId ? "Attendance record updated successfully." : "Attendance record saved successfully.", "success", "Attendance");
                 setForm({ roll: "", total: "", present: "" });
+                setEditingId(null);
+                loadData();
+            })
+            .catch((err) => notify(err.message, "error", "Attendance"))
+            .finally(() => setLoading(false));
+    }
+
+    function editAttendance(row) {
+        setEditingId(row.id);
+        setForm({ roll: String(row.roll_no), total: String(row.total), present: String(row.present) });
+    }
+
+    function deleteAttendance(id) {
+        if (!window.confirm(`Delete attendance row ${id}?`)) return;
+        setLoading(true);
+        apiRequest(`/api/attendance/${id}`, { method: "DELETE" }, token)
+            .then(() => {
+                notify("Attendance record deleted successfully.", "success", "Attendance");
+                if (editingId === id) {
+                    setEditingId(null);
+                    setForm({ roll: "", total: "", present: "" });
+                }
                 loadData();
             })
             .catch((err) => notify(err.message, "error", "Attendance"))
@@ -421,12 +485,15 @@ function AttendanceView({ token, notify, setLoading }) {
                 <MetricCard label="Total Records" value={summary.total_attendance_rows} tone="slate" detail="Attendance rows captured" />
             </div>
             <div className="split-grid split-grid-feature">
-                <DataCard title="Attendance Intake" subtitle="Capture the latest attendance values for a student record.">
+                <DataCard title={editingId ? "Edit Attendance" : "Attendance Intake"} subtitle={editingId ? "Update the selected attendance row." : "Capture the latest attendance values for a student record."}>
                     <div className="entry-stack">
                         <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
                         <input className="form-control" placeholder="Total Classes" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} />
                         <input className="form-control" placeholder="Present Classes" value={form.present} onChange={(e) => setForm({ ...form, present: e.target.value })} />
-                        <button className="btn btn-dark btn-wide" onClick={addAttendance}>Save Attendance</button>
+                        <div className="action-row">
+                            <button className="btn btn-dark btn-wide" onClick={saveAttendance}>{editingId ? "Update Attendance" : "Save Attendance"}</button>
+                            {editingId ? <button type="button" className="btn btn-outline-secondary btn-wide" onClick={() => { setEditingId(null); setForm({ roll: "", total: "", present: "" }); }}>Cancel</button> : null}
+                        </div>
                     </div>
                 </DataCard>
                 <DataCard title="Operational Guidance" subtitle="Use the register to intervene before attendance risk compounds.">
@@ -440,7 +507,7 @@ function AttendanceView({ token, notify, setLoading }) {
             <DataCard title="Attendance Register" subtitle="Paginated attendance history with participation status.">
                 <div className="table-shell">
                     <table className="table table-borderless align-middle ui-table">
-                        <thead><tr><th>Record</th><th>Academic Load</th><th>Present</th><th>Percentage</th><th>Risk State</th></tr></thead>
+                        <thead><tr><th>Record</th><th>Academic Load</th><th>Present</th><th>Percentage</th><th>Risk State</th><th>Actions</th></tr></thead>
                         <tbody>
                             {rows.length ? rows.map((row) => (
                                 <tr key={row.id}>
@@ -454,8 +521,9 @@ function AttendanceView({ token, notify, setLoading }) {
                                     <td><span className="table-chip">{row.present}</span></td>
                                     <td>{row.percentage}%</td>
                                     <td><span className={`status-badge ${Number(row.percentage) < 75 ? "status-risk" : "status-active"}`}>{Number(row.percentage) < 75 ? "Needs Review" : "On Track"}</span></td>
+                                    <td><ActionButtons onEdit={() => editAttendance(row)} onDelete={() => deleteAttendance(row.id)} /></td>
                                 </tr>
-                            )) : <tr><td colSpan="5"><EmptyState message="No attendance entries available yet." /></td></tr>}
+                            )) : <tr><td colSpan="6"><EmptyState message="No attendance entries available yet." /></td></tr>}
                         </tbody>
                     </table>
                 </div>
@@ -472,6 +540,7 @@ function MarksView({ token, notify, setLoading }) {
     const [pagination, setPagination] = useState(null);
     const [stats, setStats] = useState({ avg_marks: 0, high_scorers: 0, subject_count: 0, total_marks_rows: 0 });
     const [form, setForm] = useState({ roll: "", subject: "", marks: "" });
+    const [editingId, setEditingId] = useState(null);
 
     function loadData() {
         setLoading(true);
@@ -492,12 +561,36 @@ function MarksView({ token, notify, setLoading }) {
 
     useEffect(() => { loadData(); }, [q, page]);
 
-    function addMarks() {
+    function saveMarks() {
         setLoading(true);
-        apiRequest("/api/marks", { method: "POST", body: JSON.stringify(form) }, token)
+        const path = editingId ? `/api/marks/${editingId}` : "/api/marks";
+        const method = editingId ? "PUT" : "POST";
+        apiRequest(path, { method, body: JSON.stringify(form) }, token)
             .then(() => {
-                notify("Marks saved successfully.", "success", "Marks");
+                notify(editingId ? "Marks updated successfully." : "Marks saved successfully.", "success", "Marks");
                 setForm({ roll: "", subject: "", marks: "" });
+                setEditingId(null);
+                loadData();
+            })
+            .catch((err) => notify(err.message, "error", "Marks"))
+            .finally(() => setLoading(false));
+    }
+
+    function editMarks(row) {
+        setEditingId(row.id);
+        setForm({ roll: String(row.roll_no), subject: row.subject, marks: String(row.marks) });
+    }
+
+    function deleteMarks(id) {
+        if (!window.confirm(`Delete marks row ${id}?`)) return;
+        setLoading(true);
+        apiRequest(`/api/marks/${id}`, { method: "DELETE" }, token)
+            .then(() => {
+                notify("Marks record deleted successfully.", "success", "Marks");
+                if (editingId === id) {
+                    setEditingId(null);
+                    setForm({ roll: "", subject: "", marks: "" });
+                }
                 loadData();
             })
             .catch((err) => notify(err.message, "error", "Marks"))
@@ -522,19 +615,22 @@ function MarksView({ token, notify, setLoading }) {
                     </div>
                     <div className="section-note">The marks register updates in real time as you narrow the academic search context.</div>
                 </DataCard>
-                <DataCard title="Add Marks Entry" subtitle="Record a fresh score for the selected student and subject.">
+                <DataCard title={editingId ? "Edit Marks Entry" : "Add Marks Entry"} subtitle={editingId ? "Update the selected score entry." : "Record a fresh score for the selected student and subject."}>
                     <div className="entry-stack">
                         <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
                         <input className="form-control" placeholder="Subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
                         <input className="form-control" placeholder="Marks" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} />
-                        <button className="btn btn-dark btn-wide" onClick={addMarks}>Save Marks</button>
+                        <div className="action-row">
+                            <button className="btn btn-dark btn-wide" onClick={saveMarks}>{editingId ? "Update Marks" : "Save Marks"}</button>
+                            {editingId ? <button type="button" className="btn btn-outline-secondary btn-wide" onClick={() => { setEditingId(null); setForm({ roll: "", subject: "", marks: "" }); }}>Cancel</button> : null}
+                        </div>
                     </div>
                 </DataCard>
             </div>
             <DataCard title="Marks Register" subtitle="Paginated subject mark entries with performance classification.">
                 <div className="table-shell">
                     <table className="table table-borderless align-middle ui-table">
-                        <thead><tr><th>Candidate</th><th>Subject</th><th>Marks</th><th>Performance Band</th></tr></thead>
+                        <thead><tr><th>Candidate</th><th>Subject</th><th>Marks</th><th>Performance Band</th><th>Actions</th></tr></thead>
                         <tbody>
                             {rows.length ? rows.map((row) => (
                                 <tr key={row.id}>
@@ -547,8 +643,9 @@ function MarksView({ token, notify, setLoading }) {
                                     <td><span className="neutral-badge">{row.subject}</span></td>
                                     <td><span className="table-chip">{row.marks}</span></td>
                                     <td><span className={`status-badge ${Number(row.marks) >= 90 ? "status-active" : Number(row.marks) >= 75 ? "status-watch" : "status-risk"}`}>{Number(row.marks) >= 90 ? "Outstanding" : Number(row.marks) >= 75 ? "Stable" : "Needs Support"}</span></td>
+                                    <td><ActionButtons onEdit={() => editMarks(row)} onDelete={() => deleteMarks(row.id)} /></td>
                                 </tr>
-                            )) : <tr><td colSpan="4"><EmptyState message="No marks data available for the current search." /></td></tr>}
+                            )) : <tr><td colSpan="5"><EmptyState message="No marks data available for the current search." /></td></tr>}
                         </tbody>
                     </table>
                 </div>
@@ -610,6 +707,10 @@ function ReportsView({ token, notify, setLoading }) {
             .finally(() => setLoading(false));
     }, []);
 
+    function exportCsv(type) {
+        window.open(`/export/${type}`, "_blank", "noopener,noreferrer");
+    }
+
     return (
         <div className="page-grid">
             <PageHeader eyebrow="Reports" title="Department and subject intelligence" description="Use presentation-ready analytics to explain patterns and risk distribution." />
@@ -619,6 +720,13 @@ function ReportsView({ token, notify, setLoading }) {
                 <MetricCard label="Average Attendance" value={`${data.avg_attendance}%`} tone="emerald" />
                 <MetricCard label="Average Marks" value={data.avg_marks} tone="amber" />
             </div>
+            <DataCard title="Report Actions" subtitle="Download current academic datasets for reporting and archival.">
+                <div className="action-row action-row-report">
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => exportCsv("students")}>Export Students</button>
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => exportCsv("attendance")}>Export Attendance</button>
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => exportCsv("marks")}>Export Marks</button>
+                </div>
+            </DataCard>
             <div className="report-grid">
                 <DataCard title="Department Analytics" subtitle="Cross-department academic view with risk concentration.">
                     <div className="table-shell">

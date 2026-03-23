@@ -542,6 +542,19 @@ select {
     border-color: rgba(20, 34, 24, 0.12);
 }
 
+.btn-outline-danger {
+    color: #9d3553;
+    background: rgba(255, 246, 248, 0.96);
+    border-color: rgba(182, 89, 120, 0.22);
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus {
+    color: #fff;
+    background: linear-gradient(135deg, #a63f57 0%, #c85b4f 100%);
+    border-color: rgba(166, 63, 87, 0.3);
+}
+
 .btn-dark {
     border-radius: 14px;
     background: linear-gradient(135deg, #0e6b60 0%, #268b7f 52%, #3978df 100%);
@@ -714,6 +727,34 @@ select {
     gap: 12px;
     margin-top: 18px;
     color: var(--muted);
+}
+
+.action-group,
+.action-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-group {
+    justify-content: flex-start;
+}
+
+.action-btn {
+    min-width: 76px;
+}
+
+.action-row {
+    margin-top: 4px;
+}
+
+.action-row .btn-wide {
+    flex: 1 1 180px;
+}
+
+.action-row-report .btn {
+    min-width: 160px;
 }
 
 .split-grid {
