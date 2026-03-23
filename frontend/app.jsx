@@ -104,6 +104,91 @@ function DataCard({ title, subtitle, children }) {
     );
 }
 
+function StudentProfileModal({ student, onClose }) {
+    if (!student) return null;
+    const riskFlags = student.risk_flags || [];
+    const subjectScores = student.subject_scores || [];
+    const attendanceHistory = student.attendance_history || [];
+
+    return (
+        <div className="profile-modal-backdrop" onClick={onClose}>
+            <div className="profile-modal panel-card fade-in-up" onClick={(e) => e.stopPropagation()}>
+                <div className="profile-modal-head">
+                    <div className="profile-identity">
+                        <div className="profile-avatar">
+                            <img src="/frontend/assets/logo-mark.svg" alt="Student profile" />
+                        </div>
+                        <div>
+                            <h3>{student.name}</h3>
+                            <p>Roll No {student.roll_no} • {student.dept}</p>
+                        </div>
+                    </div>
+                    <button type="button" className="profile-close" onClick={onClose}>Close</button>
+                </div>
+                <div className="profile-summary">
+                    <div className="profile-stat">
+                        <span>Attendance</span>
+                        <strong>{student.attendance_pct}%</strong>
+                    </div>
+                    <div className="profile-stat">
+                        <span>Average Marks</span>
+                        <strong>{student.avg_marks}</strong>
+                    </div>
+                    <div className="profile-stat">
+                        <span>Classes Present</span>
+                        <strong>{student.total_present}/{student.total_classes}</strong>
+                    </div>
+                </div>
+                <div className="profile-grid">
+                    <div className="profile-section">
+                        <div className="profile-section-head">
+                            <h4>Risk Overview</h4>
+                            <span>{riskFlags.length ? "Intervention required" : "No active risk"}</span>
+                        </div>
+                        <div className="profile-badge-row">
+                            {riskFlags.length
+                                ? riskFlags.map((flag) => <span key={flag} className="status-badge status-risk">{flag}</span>)
+                                : <span className="status-badge status-active">Stable Profile</span>}
+                        </div>
+                    </div>
+                    <div className="profile-section">
+                        <div className="profile-section-head">
+                            <h4>Marks History</h4>
+                            <span>{subjectScores.length} recorded subjects</span>
+                        </div>
+                        {subjectScores.length ? (
+                            <div className="mini-table">
+                                {subjectScores.map((item, index) => (
+                                    <div key={`${item.subject}-${index}`} className="mini-row">
+                                        <span>{item.subject}</span>
+                                        <strong>{item.marks}</strong>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : <EmptyState message="No marks recorded for this student." />}
+                    </div>
+                    <div className="profile-section">
+                        <div className="profile-section-head">
+                            <h4>Attendance History</h4>
+                            <span>{attendanceHistory.length} attendance entries</span>
+                        </div>
+                        {attendanceHistory.length ? (
+                            <div className="mini-table">
+                                {attendanceHistory.map((item) => (
+                                    <div key={item.id} className="mini-row mini-row-wide">
+                                        <span>ID {item.id} • {item.present}/{item.total} classes</span>
+                                        <strong>{item.percentage}%</strong>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : <EmptyState message="No attendance recorded for this student." />}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function LoginView({ onLogin, loading }) {
     const [loginMode, setLoginMode] = useState("email");
     const [email, setEmail] = useState("");
@@ -167,6 +252,7 @@ function StudentsView({ token, notify, setLoading }) {
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState(null);
     const [form, setForm] = useState({ roll: "", name: "", dept: "" });
+    const [selectedStudent, setSelectedStudent] = useState(null);
 
     function loadData() {
         setLoading(true);
@@ -194,42 +280,92 @@ function StudentsView({ token, notify, setLoading }) {
             .finally(() => setLoading(false));
     }
 
+    function openStudentProfile(rollNo) {
+        setLoading(true);
+        apiRequest(`/api/students/${rollNo}/profile`, {}, token)
+            .then((data) => setSelectedStudent(data.student || null))
+            .catch((err) => notify(err.message, "error", "Student Profile"))
+            .finally(() => setLoading(false));
+    }
+
+    const visibleCount = rows.length;
+    const totalStudents = pagination?.total || visibleCount;
+
     return (
         <div className="page-grid">
+            <StudentProfileModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />
             <PageHeader eyebrow="Student Directory" title="Manage student records" description="Search departments, add new learners, and keep the academic roster clean." />
-            <DataCard title="Directory Controls" subtitle="Filter and add student entries from one place.">
-                <div className="control-grid">
-                    <label className="field-block">
-                        <span>Search by name or roll</span>
-                        <input className="form-control" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
-                    </label>
-                    <label className="field-block">
-                        <span>Department</span>
-                        <select className="form-select" value={dept} onChange={(e) => { setPage(1); setDept(e.target.value); }}>
-                            <option value="">All Departments</option>
-                            {departments.map((item) => <option key={item} value={item}>{item}</option>)}
-                        </select>
-                    </label>
+            <div className="insight-strip">
+                <div className="insight-tile">
+                    <span className="insight-label">Total Directory Size</span>
+                    <strong>{totalStudents}</strong>
+                    <small>Managed student profiles</small>
                 </div>
-                <div className="entry-grid">
-                    <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
-                    <input className="form-control" placeholder="Student Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                    <input className="form-control" placeholder="Department" value={form.dept} onChange={(e) => setForm({ ...form, dept: e.target.value })} />
-                    <button className="btn btn-dark" onClick={addStudent}>Add Student</button>
+                <div className="insight-tile">
+                    <span className="insight-label">Departments</span>
+                    <strong>{departments.length || 0}</strong>
+                    <small>Distinct academic units</small>
                 </div>
-            </DataCard>
-            <DataCard title="Student Records" subtitle="Current roster across departments.">
+                <div className="insight-tile">
+                    <span className="insight-label">Current View</span>
+                    <strong>{visibleCount}</strong>
+                    <small>{dept || "All departments"} filtered results</small>
+                </div>
+            </div>
+            <div className="split-grid split-grid-feature">
+                <DataCard title="Directory Controls" subtitle="Search and refine the active student roster.">
+                    <div className="control-grid">
+                        <label className="field-block">
+                            <span>Search by name or roll</span>
+                            <input className="form-control" placeholder="Search roster" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
+                        </label>
+                        <label className="field-block">
+                            <span>Department</span>
+                            <select className="form-select" value={dept} onChange={(e) => { setPage(1); setDept(e.target.value); }}>
+                                <option value="">All Departments</option>
+                                {departments.map((item) => <option key={item} value={item}>{item}</option>)}
+                            </select>
+                        </label>
+                    </div>
+                    <div className="section-note">Use the filter set to isolate a department or locate a profile quickly during review meetings.</div>
+                </DataCard>
+                <DataCard title="Add New Student" subtitle="Register a new learner in the academic system.">
+                    <div className="entry-stack">
+                        <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
+                        <input className="form-control" placeholder="Student Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                        <input className="form-control" placeholder="Department" value={form.dept} onChange={(e) => setForm({ ...form, dept: e.target.value })} />
+                        <button className="btn btn-dark btn-wide" onClick={addStudent}>Add Student</button>
+                    </div>
+                </DataCard>
+            </div>
+            <DataCard title="Student Records" subtitle="Current roster across departments with identity and ownership details.">
                 <div className="table-shell">
                     <table className="table table-borderless align-middle ui-table">
-                        <thead><tr><th>Roll No</th><th>Name</th><th>Department</th></tr></thead>
+                        <thead><tr><th>Profile</th><th>Student Identity</th><th>Department</th><th>Status</th></tr></thead>
                         <tbody>
                             {rows.length ? rows.map((row) => (
                                 <tr key={row.roll_no}>
-                                    <td><span className="table-chip">{row.roll_no}</span></td>
-                                    <td>{row.name}</td>
-                                    <td>{row.dept}</td>
+                                    <td>
+                                        <div className="student-profile">
+                                            <button type="button" className="student-avatar-button" onClick={() => openStudentProfile(row.roll_no)}>
+                                                <div className="student-avatar">
+                                                <img src="/frontend/assets/logo-mark.svg" alt="Student profile" />
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button type="button" className="entity-button" onClick={() => openStudentProfile(row.roll_no)}>
+                                            <div className="entity-main">
+                                            <strong>{row.name}</strong>
+                                            <span>Roll No {row.roll_no}</span>
+                                            </div>
+                                        </button>
+                                    </td>
+                                    <td><span className="neutral-badge">{row.dept}</span></td>
+                                    <td><span className="status-badge status-active">Active Record</span></td>
                                 </tr>
-                            )) : <tr><td colSpan="3"><EmptyState message="No student records match the current filter." /></td></tr>}
+                            )) : <tr><td colSpan="4"><EmptyState message="No student records match the current filter." /></td></tr>}
                         </tbody>
                     </table>
                 </div>
@@ -284,26 +420,40 @@ function AttendanceView({ token, notify, setLoading }) {
                 <MetricCard label="Low Attendance Cases" value={summary.low_attendance_count} tone="rose" detail="Below 75 percent" />
                 <MetricCard label="Total Records" value={summary.total_attendance_rows} tone="slate" detail="Attendance rows captured" />
             </div>
-            <DataCard title="Add Attendance Row" subtitle="Record the latest attendance values.">
-                <div className="entry-grid">
-                    <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
-                    <input className="form-control" placeholder="Total Classes" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} />
-                    <input className="form-control" placeholder="Present Classes" value={form.present} onChange={(e) => setForm({ ...form, present: e.target.value })} />
-                    <button className="btn btn-dark" onClick={addAttendance}>Save Attendance</button>
-                </div>
-            </DataCard>
-            <DataCard title="Attendance Register" subtitle="Paginated attendance history for review.">
+            <div className="split-grid split-grid-feature">
+                <DataCard title="Attendance Intake" subtitle="Capture the latest attendance values for a student record.">
+                    <div className="entry-stack">
+                        <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
+                        <input className="form-control" placeholder="Total Classes" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} />
+                        <input className="form-control" placeholder="Present Classes" value={form.present} onChange={(e) => setForm({ ...form, present: e.target.value })} />
+                        <button className="btn btn-dark btn-wide" onClick={addAttendance}>Save Attendance</button>
+                    </div>
+                </DataCard>
+                <DataCard title="Operational Guidance" subtitle="Use the register to intervene before attendance risk compounds.">
+                    <div className="brief-list">
+                        <div className="brief-row"><strong>Threshold</strong><span>Students below 75% should be reviewed in the next faculty cycle.</span></div>
+                        <div className="brief-row"><strong>Refresh Cadence</strong><span>Update the register after each assessment block or class cycle.</span></div>
+                        <div className="brief-row"><strong>Review View</strong><span>Paginated records help track low-attendance patterns over time.</span></div>
+                    </div>
+                </DataCard>
+            </div>
+            <DataCard title="Attendance Register" subtitle="Paginated attendance history with participation status.">
                 <div className="table-shell">
                     <table className="table table-borderless align-middle ui-table">
-                        <thead><tr><th>ID</th><th>Roll No</th><th>Total</th><th>Present</th><th>Percentage</th></tr></thead>
+                        <thead><tr><th>Record</th><th>Academic Load</th><th>Present</th><th>Percentage</th><th>Risk State</th></tr></thead>
                         <tbody>
                             {rows.length ? rows.map((row) => (
                                 <tr key={row.id}>
-                                    <td>{row.id}</td>
-                                    <td><span className="table-chip">{row.roll_no}</span></td>
-                                    <td>{row.total}</td>
-                                    <td>{row.present}</td>
+                                    <td>
+                                        <div className="entity-main">
+                                            <strong>Roll No {row.roll_no}</strong>
+                                            <span>Attendance ID {row.id}</span>
+                                        </div>
+                                    </td>
+                                    <td>{row.total} classes</td>
+                                    <td><span className="table-chip">{row.present}</span></td>
                                     <td>{row.percentage}%</td>
+                                    <td><span className={`status-badge ${Number(row.percentage) < 75 ? "status-risk" : "status-active"}`}>{Number(row.percentage) < 75 ? "Needs Review" : "On Track"}</span></td>
                                 </tr>
                             )) : <tr><td colSpan="5"><EmptyState message="No attendance entries available yet." /></td></tr>}
                         </tbody>
@@ -362,31 +512,41 @@ function MarksView({ token, notify, setLoading }) {
                 <MetricCard label="High Scorers" value={stats.high_scorers} tone="amber" detail="Scores 90 and above" />
                 <MetricCard label="Subjects" value={stats.subject_count} tone="slate" detail={`${stats.total_marks_rows} total entries`} />
             </div>
-            <DataCard title="Search and Add Marks" subtitle="Keep assessment data current and searchable.">
-                <div className="control-grid">
-                    <label className="field-block field-wide">
-                        <span>Search by roll or subject</span>
-                        <input className="form-control" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
-                    </label>
-                </div>
-                <div className="entry-grid entry-grid-marks">
-                    <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
-                    <input className="form-control" placeholder="Subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
-                    <input className="form-control" placeholder="Marks" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} />
-                    <button className="btn btn-dark" onClick={addMarks}>Save Marks</button>
-                </div>
-            </DataCard>
-            <DataCard title="Marks Register" subtitle="Paginated subject mark entries.">
+            <div className="split-grid split-grid-feature">
+                <DataCard title="Search Ledger" subtitle="Filter the marks register by roll number or subject.">
+                    <div className="control-grid control-grid-single">
+                        <label className="field-block field-wide">
+                            <span>Search by roll or subject</span>
+                            <input className="form-control" placeholder="Search marks ledger" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
+                        </label>
+                    </div>
+                    <div className="section-note">The marks register updates in real time as you narrow the academic search context.</div>
+                </DataCard>
+                <DataCard title="Add Marks Entry" subtitle="Record a fresh score for the selected student and subject.">
+                    <div className="entry-stack">
+                        <input className="form-control" placeholder="Roll No" value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} />
+                        <input className="form-control" placeholder="Subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+                        <input className="form-control" placeholder="Marks" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} />
+                        <button className="btn btn-dark btn-wide" onClick={addMarks}>Save Marks</button>
+                    </div>
+                </DataCard>
+            </div>
+            <DataCard title="Marks Register" subtitle="Paginated subject mark entries with performance classification.">
                 <div className="table-shell">
                     <table className="table table-borderless align-middle ui-table">
-                        <thead><tr><th>ID</th><th>Roll No</th><th>Subject</th><th>Marks</th></tr></thead>
+                        <thead><tr><th>Candidate</th><th>Subject</th><th>Marks</th><th>Performance Band</th></tr></thead>
                         <tbody>
                             {rows.length ? rows.map((row) => (
                                 <tr key={row.id}>
-                                    <td>{row.id}</td>
-                                    <td><span className="table-chip">{row.roll_no}</span></td>
-                                    <td>{row.subject}</td>
-                                    <td>{row.marks}</td>
+                                    <td>
+                                        <div className="entity-main">
+                                            <strong>Roll No {row.roll_no}</strong>
+                                            <span>Marks ID {row.id}</span>
+                                        </div>
+                                    </td>
+                                    <td><span className="neutral-badge">{row.subject}</span></td>
+                                    <td><span className="table-chip">{row.marks}</span></td>
+                                    <td><span className={`status-badge ${Number(row.marks) >= 90 ? "status-active" : Number(row.marks) >= 75 ? "status-watch" : "status-risk"}`}>{Number(row.marks) >= 90 ? "Outstanding" : Number(row.marks) >= 75 ? "Stable" : "Needs Support"}</span></td>
                                 </tr>
                             )) : <tr><td colSpan="4"><EmptyState message="No marks data available for the current search." /></td></tr>}
                         </tbody>
@@ -459,42 +619,53 @@ function ReportsView({ token, notify, setLoading }) {
                 <MetricCard label="Average Attendance" value={`${data.avg_attendance}%`} tone="emerald" />
                 <MetricCard label="Average Marks" value={data.avg_marks} tone="amber" />
             </div>
-            <DataCard title="Department Analytics" subtitle="Cross-department academic view.">
-                <div className="table-shell">
-                    <table className="table table-borderless align-middle ui-table">
-                        <thead><tr><th>Department</th><th>Students</th><th>Avg Attendance</th><th>Avg Marks</th><th>At Risk</th></tr></thead>
-                        <tbody>
-                            {(data.department_rows || []).length ? data.department_rows.map((row) => (
-                                <tr key={row.dept}>
-                                    <td>{row.dept}</td>
-                                    <td>{row.students}</td>
-                                    <td>{row.avg_attendance}%</td>
-                                    <td>{row.avg_marks}</td>
-                                    <td><span className="risk-badge">{row.at_risk_count}</span></td>
-                                </tr>
-                            )) : <tr><td colSpan="5"><EmptyState message="No department analytics available." /></td></tr>}
-                        </tbody>
-                    </table>
-                </div>
-            </DataCard>
-            <DataCard title="Subject Analytics" subtitle="Performance spread by subject.">
-                <div className="table-shell">
-                    <table className="table table-borderless align-middle ui-table">
-                        <thead><tr><th>Subject</th><th>Entries</th><th>Average</th><th>Max</th><th>Min</th></tr></thead>
-                        <tbody>
-                            {(data.subject_rows || []).length ? data.subject_rows.map((row) => (
-                                <tr key={row.subject}>
-                                    <td>{row.subject}</td>
-                                    <td>{row.entries}</td>
-                                    <td>{row.avg_score}</td>
-                                    <td>{row.max_score}</td>
-                                    <td>{row.min_score}</td>
-                                </tr>
-                            )) : <tr><td colSpan="5"><EmptyState message="No subject analytics available." /></td></tr>}
-                        </tbody>
-                    </table>
-                </div>
-            </DataCard>
+            <div className="report-grid">
+                <DataCard title="Department Analytics" subtitle="Cross-department academic view with risk concentration.">
+                    <div className="table-shell">
+                        <table className="table table-borderless align-middle ui-table">
+                            <thead><tr><th>Department</th><th>Students</th><th>Avg Attendance</th><th>Avg Marks</th><th>Risk</th></tr></thead>
+                            <tbody>
+                                {(data.department_rows || []).length ? data.department_rows.map((row) => (
+                                    <tr key={row.dept}>
+                                        <td>
+                                            <div className="entity-main">
+                                                <strong>{row.dept}</strong>
+                                                <span>Department performance cluster</span>
+                                            </div>
+                                        </td>
+                                        <td>{row.students}</td>
+                                        <td>{row.avg_attendance}%</td>
+                                        <td>{row.avg_marks}</td>
+                                        <td><span className={`status-badge ${row.at_risk_count ? "status-risk" : "status-active"}`}>{row.at_risk_count} flagged</span></td>
+                                    </tr>
+                                )) : <tr><td colSpan="5"><EmptyState message="No department analytics available." /></td></tr>}
+                            </tbody>
+                        </table>
+                    </div>
+                </DataCard>
+                <DataCard title="Subject Analytics" subtitle="Performance spread by subject with score range visibility.">
+                    <div className="table-shell">
+                        <table className="table table-borderless align-middle ui-table">
+                            <thead><tr><th>Subject</th><th>Entries</th><th>Average</th><th>Range</th></tr></thead>
+                            <tbody>
+                                {(data.subject_rows || []).length ? data.subject_rows.map((row) => (
+                                    <tr key={row.subject}>
+                                        <td>
+                                            <div className="entity-main">
+                                                <strong>{row.subject}</strong>
+                                                <span>Assessment coverage</span>
+                                            </div>
+                                        </td>
+                                        <td>{row.entries}</td>
+                                        <td><span className="table-chip">{row.avg_score}</span></td>
+                                        <td><span className="neutral-badge">{row.min_score} - {row.max_score}</span></td>
+                                    </tr>
+                                )) : <tr><td colSpan="4"><EmptyState message="No subject analytics available." /></td></tr>}
+                            </tbody>
+                        </table>
+                    </div>
+                </DataCard>
+            </div>
         </div>
     );
 }
@@ -570,7 +741,7 @@ function AppShell({ route, token, setToken, user, setUser, notify }) {
             <main className="main-area">
                 <header className="topbar">
                     <div><span className="topbar-kicker">Live Workspace</span><h1>{navItems.find((item) => item[0] === currentRoute)?.[1] || "Dashboard"}</h1></div>
-                    <div className="topbar-pill">Render-ready academic management</div>
+                    <div className="topbar-pill">Enterprise academic operations</div>
                 </header>
                 <React.Suspense fallback={<div className="panel-card p-3">Loading module...</div>}>{routeNode}</React.Suspense>
             </main>
@@ -581,9 +752,29 @@ function AppShell({ route, token, setToken, user, setUser, notify }) {
 function App() {
     const [token, setToken] = useState(localStorage.getItem(TOKEN_KEY) || "");
     const [user, setUser] = useState(localStorage.getItem(USER_KEY) || "");
-    const [route] = useState(getRouteFromPath());
+    const [route, setRoute] = useState(getRouteFromPath());
     const [loading, setLoading] = useState(false);
     const [toasts, setToasts] = useState([]);
+
+    useEffect(() => {
+        const path = window.location.pathname.toLowerCase();
+        if (path === "/" || path === "/login") {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            setToken("");
+            setUser("");
+            if (path !== "/login") {
+                window.history.replaceState({}, "", "/login");
+                setRoute("login");
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleNavigation = () => setRoute(getRouteFromPath());
+        window.addEventListener("popstate", handleNavigation);
+        return () => window.removeEventListener("popstate", handleNavigation);
+    }, []);
 
     function notify(message, type = "info", title = "System") {
         const id = `${Date.now()}-${Math.random()}`;
@@ -601,6 +792,7 @@ function App() {
                 localStorage.setItem(USER_KEY, data.user);
                 notify("Login successful. Workspace is ready.", "success", "Authentication");
                 window.history.replaceState({}, "", "/dashboard");
+                setRoute("dashboard");
             })
             .catch((err) => notify(err.message, "error", "Authentication"))
             .finally(() => setLoading(false));
@@ -610,7 +802,9 @@ function App() {
         <>
             <Loader show={loading} />
             <Toasts toasts={toasts} onRemove={(id) => setToasts((prev) => prev.filter((item) => item.id !== id))} />
-            {!token ? <LoginView onLogin={onLogin} loading={loading} /> : <AppShell route={route} token={token} setToken={setToken} user={user} setUser={setUser} notify={notify} />}
+            {!token || route === "login"
+                ? <LoginView onLogin={onLogin} loading={loading} />
+                : <AppShell route={route} token={token} setToken={setToken} user={user} setUser={setUser} notify={notify} />}
         </>
     );
 }
