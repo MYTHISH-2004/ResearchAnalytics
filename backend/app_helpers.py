@@ -1,3 +1,5 @@
+import os
+
 from flask import jsonify, request
 from sqlalchemy import inspect, text, func, case
 import math
@@ -53,6 +55,10 @@ def paginate_query(query, page, per_page):
 
 
 def seed_demo_data_if_empty(logger):
+    if str(os.getenv("SEED_DEMO_DATA", "")).strip().lower() not in {"1", "true", "yes"}:
+        logger.info("Skipping demo data seed because SEED_DEMO_DATA is disabled")
+        return
+
     if Student.query.count() or Attendance.query.count() or Marks.query.count():
         return
 

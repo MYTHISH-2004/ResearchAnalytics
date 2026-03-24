@@ -51,6 +51,12 @@ python backend/app.py
 
 Open: `http://127.0.0.1:5000/login`
 
+Database configuration:
+- Local default: `backend/instance/database.db`
+- Override with `SQLITE_PATH=/absolute/or/project-relative/path.db`
+- For hosted deployments, prefer setting `DATABASE_URL` or a persistent `SQLITE_PATH`
+- Demo seed data is only inserted when `SEED_DEMO_DATA=true`
+
 Default login:
 - Email: `mythish.ad23@bitsathy.ac.in`
 - Password: `My1907`

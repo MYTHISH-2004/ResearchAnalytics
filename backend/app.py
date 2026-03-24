@@ -31,8 +31,19 @@ from app_helpers import (
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
-DB_FILE = CURRENT_DIR / "instance" / "database.db"
-DB_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+
+def build_database_uri():
+    database_url = (os.getenv("DATABASE_URL") or "").strip()
+    if database_url:
+        if database_url.startswith("postgres://"):
+            database_url = "postgresql://" + database_url[len("postgres://"):]
+        return database_url
+
+    sqlite_path = (os.getenv("SQLITE_PATH") or "").strip()
+    db_file = Path(sqlite_path) if sqlite_path else CURRENT_DIR / "instance" / "database.db"
+    db_file.parent.mkdir(parents=True, exist_ok=True)
+    return f"sqlite:///{db_file.resolve().as_posix()}"
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "secret")
@@ -41,7 +52,7 @@ DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL", "mythish.ad23@bitsathy.ac.in")
 DEFAULT_PASSWORD = os.getenv("DEFAULT_PASSWORD", "My1907")
 API_JWT_EXPIRES_SECONDS = 24 * 60 * 60
 
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_FILE.as_posix()}"
+app.config["SQLALCHEMY_DATABASE_URI"] = build_database_uri()
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
