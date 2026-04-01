@@ -33,6 +33,25 @@ PROJECT_ROOT = CURRENT_DIR.parent
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 
 
+def load_local_env_file():
+    env_file = PROJECT_ROOT / ".env"
+    if not env_file.exists():
+        return
+
+    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+load_local_env_file()
+
+
 def build_database_uri():
     database_url = (os.getenv("DATABASE_URL") or "").strip()
     if database_url:
@@ -531,7 +550,7 @@ def api_marks():
     filtered_query = get_marks_query(search_query)
     data, pagination = paginate_query(filtered_query, page, per_page)
 
-    stats_query = get_marks_query(search_query)
+    stats_query = get_marks_query(search_query).order_by(None)
     avg_marks_raw, high_scorers_raw, total_rows, subject_count = stats_query.with_entities(
         func.coalesce(func.avg(Marks.marks), 0),
         func.coalesce(func.sum(case((Marks.marks >= 90, 1), else_=0)), 0),

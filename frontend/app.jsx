@@ -542,9 +542,9 @@ function MarksView({ token, notify, setLoading }) {
     const [form, setForm] = useState({ roll: "", subject: "", marks: "" });
     const [editingId, setEditingId] = useState(null);
 
-    function loadData() {
+    function loadData(nextQuery = q, nextPage = page) {
         setLoading(true);
-        apiRequest(`/api/marks?q=${encodeURIComponent(q)}&page=${page}&per_page=8`, {}, token)
+        apiRequest(`/api/marks?q=${encodeURIComponent(nextQuery)}&page=${nextPage}&per_page=8`, {}, token)
             .then((data) => {
                 setRows(data.data || []);
                 setPagination(data.pagination);
@@ -563,14 +563,23 @@ function MarksView({ token, notify, setLoading }) {
 
     function saveMarks() {
         setLoading(true);
+        const isEditing = Boolean(editingId);
         const path = editingId ? `/api/marks/${editingId}` : "/api/marks";
         const method = editingId ? "PUT" : "POST";
         apiRequest(path, { method, body: JSON.stringify(form) }, token)
             .then(() => {
-                notify(editingId ? "Marks updated successfully." : "Marks saved successfully.", "success", "Marks");
+                notify(isEditing ? "Marks updated successfully." : "Marks saved successfully.", "success", "Marks");
                 setForm({ roll: "", subject: "", marks: "" });
                 setEditingId(null);
-                loadData();
+
+                if (isEditing) {
+                    loadData();
+                    return;
+                }
+
+                setQ("");
+                setPage(1);
+                loadData("", 1);
             })
             .catch((err) => notify(err.message, "error", "Marks"))
             .finally(() => setLoading(false));

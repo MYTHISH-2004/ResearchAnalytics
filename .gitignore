@@ -8,3 +8,4 @@ backend/tests/__pycache__/
 backend/run.out.log
 backend/run.err.log
 backend/instance/database.db
+.env
